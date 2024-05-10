@@ -82,6 +82,14 @@ async function run() {
       res.send(result);
     });
 
+    app.delete("/volunteerposts", async (req, res) => {
+      const id = req.query?.deleteid;
+      const query = { _id: new ObjectId(id) };
+
+      const result = await VPostsCollection.deleteOne(query);
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
