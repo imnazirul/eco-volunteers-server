@@ -13,7 +13,7 @@ app.use(
 );
 app.use(express.json());
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.kygk2l2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -32,14 +32,34 @@ async function run() {
     const VPostsCollection = client
       .db("volunteerDB")
       .collection("volunteerPosts");
-    // const
+
+    app.get("/volunteerposts", async (req, res) => {
+      const email = req.query?.email;
+      const limit = parseInt(req.query?.limit);
+
+      let query = {};
+      if (email) {
+        query = {
+          organizer_email: email,
+        };
+      }
+      const cursor = VPostsCollection.find(query).limit(limit);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    app.get("/singlevpost/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await VPostsCollection.findOne(query);
+      res.send(result);
+    });
 
     app.post("/volunteerposts", async (req, res) => {
       const post = req.body;
       const doc = {
         ...post,
       };
-      console.log(doc);
       const result = await VPostsCollection.insertOne(doc);
       res.send(result);
     });
