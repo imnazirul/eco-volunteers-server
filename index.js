@@ -7,7 +7,7 @@ const port = process.env.port || 5000;
 // middleware
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: ["http://localhost:5175"],
     credentials: true,
   })
 );
@@ -61,6 +61,24 @@ async function run() {
         ...post,
       };
       const result = await VPostsCollection.insertOne(doc);
+      res.send(result);
+    });
+
+    app.put("/volunteerposts", async (req, res) => {
+      const post = req.body;
+      const id = req.query?.update;
+      const filter = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          ...post,
+        },
+      };
+      const result = await VPostsCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
       res.send(result);
     });
 
