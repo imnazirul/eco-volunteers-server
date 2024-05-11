@@ -35,6 +35,7 @@ async function run() {
     const RequestedPostCollection = client
       .db("volunteerDB")
       .collection("RequestedPosts");
+    const NewsCollection = client.db("volunteerDB").collection("updateNews");
 
     app.get("/volunteerposts", async (req, res) => {
       const email = req.query?.email;
@@ -49,6 +50,15 @@ async function run() {
 
       const cursor = VPostsCollection.find(query).limit(limit);
       const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    app.get("/requestedpost", async (req, res) => {
+      const email = req?.query.email;
+      const query = {
+        volunteer_email: email,
+      };
+      const result = await RequestedPostCollection.find(query).toArray();
       res.send(result);
     });
 
@@ -68,6 +78,12 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await VPostsCollection.findOne(query);
+      res.send(result);
+    });
+
+    app.get("/updatesandnews", async (req, res) => {
+      const cursor = NewsCollection.find();
+      const result = await cursor.toArray();
       res.send(result);
     });
 
@@ -122,6 +138,14 @@ async function run() {
       const query = { _id: new ObjectId(id) };
 
       const result = await VPostsCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    app.delete("/requestedpost", async (req, res) => {
+      const id = req.query?.cancelid;
+      const query = { _id: new ObjectId(id) };
+
+      const result = await RequestedPostCollection.deleteOne(query);
       res.send(result);
     });
 
