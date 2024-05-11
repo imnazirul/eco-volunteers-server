@@ -7,7 +7,7 @@ const port = process.env.port || 5000;
 // middleware
 app.use(
   cors({
-    origin: ["http://localhost:5175"],
+    origin: ["http://localhost:5173"],
     credentials: true,
   })
 );
@@ -32,6 +32,9 @@ async function run() {
     const VPostsCollection = client
       .db("volunteerDB")
       .collection("volunteerPosts");
+    const RequestedPostCollection = client
+      .db("volunteerDB")
+      .collection("RequestedPosts");
 
     app.get("/volunteerposts", async (req, res) => {
       const email = req.query?.email;
@@ -43,8 +46,21 @@ async function run() {
           organizer_email: email,
         };
       }
+
       const cursor = VPostsCollection.find(query).limit(limit);
       const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    app.get("/volunteerpostssearch", async (req, res) => {
+      const search = req.query?.search;
+      const query = {
+        post_title: { $regex: search, $options: "i" },
+      };
+      const options = {};
+      const result = await VPostsCollection.find(query, options).toArray();
+
+      console.log(result.length);
       res.send(result);
     });
 
@@ -61,6 +77,25 @@ async function run() {
         ...post,
       };
       const result = await VPostsCollection.insertOne(doc);
+      res.send(result);
+    });
+
+    app.post("/updatevolunteerneeded", async (req, res) => {
+      const id = req.query?.id;
+      const volunteer = req.body;
+      const filter = {
+        _id: new ObjectId(id),
+      };
+
+      const updateDoc = {
+        $inc: { volunteers_needed: -1 },
+      };
+      const addIdToDataBase = await RequestedPostCollection.insertOne({
+        id,
+        ...volunteer,
+      });
+      const result = await VPostsCollection.updateOne(filter, updateDoc);
+
       res.send(result);
     });
 
