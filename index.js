@@ -36,15 +36,24 @@ const cookieOptions = {
 
 //middleware
 
-const logger = (req, res, next) => {
-  console.log(req.method, req.originalUrl);
-  next();
-};
+// const logger = (req, res, next) => {
+//   console.log(req.method, req.originalUrl);
+//   next();
+// };
 
 const verifyToken = (req, res, next) => {
   const token = req?.cookies?.token;
-  console.log("verify", token);
-  next();
+
+  if (!token) {
+    return res.status(401).send({ message: "unauthorized access" });
+  }
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: "unauthorized access" });
+    }
+    req.user = decoded;
+    next();
+  });
 };
 
 async function run() {
@@ -74,30 +83,41 @@ async function run() {
     app.post("/logout", async (req, res) => {
       const user = req.body;
       console.log(user.email, "logout Successfully");
-      res.clearCookie("token", { maxAge: 0 }).send({ success: true });
+      res
+        .clearCookie("token", { ...cookieOptions, maxAge: 0 })
+        .send({ success: true });
     });
 
     //data related api
-    app.get("/volunteerposts", logger, async (req, res) => {
-      const email = req.query?.email;
+    app.get("/volunteerposts", async (req, res) => {
       const limit = parseInt(req.query?.limit);
 
-      let query = {};
-      if (email) {
-        query = {
-          organizer_email: email,
-        };
-      }
-
-      const cursor = VPostsCollection.find(query)
+      const cursor = VPostsCollection.find()
         .limit(limit)
         .sort({ deadline: -1 });
       const result = await cursor.toArray();
       res.send(result);
     });
 
-    app.get("/requestedpost", async (req, res) => {
-      const email = req?.query.email;
+    app.get("/needposts", verifyToken, async (req, res) => {
+      const email = req?.query?.email;
+
+      if (req.user.email !== email) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      const query = {
+        organizer_email: email,
+      };
+      const result = await VPostsCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.get("/requestedpost", verifyToken, async (req, res) => {
+      const email = req?.query?.email;
+
+      if (req.user.email !== email) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
       const query = {
         volunteer_email: email,
       };
@@ -116,8 +136,10 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/singlevpost/:id", async (req, res) => {
+    app.get("/singlevpost/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
+      const user = req.body;
+      console.log(user);
       const query = { _id: new ObjectId(id) };
       const result = await VPostsCollection.findOne(query);
       res.send(result);
@@ -129,8 +151,9 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/volunteerposts", async (req, res) => {
+    app.post("/volunteerposts", verifyToken, async (req, res) => {
       const post = req.body;
+      console.log(post);
       const doc = {
         ...post,
       };
@@ -157,9 +180,10 @@ async function run() {
       res.send(result);
     });
 
-    app.put("/volunteerposts", async (req, res) => {
+    app.put("/volunteerposts/:email", async (req, res) => {
       const post = req.body;
       const id = req.query?.update;
+
       const filter = { _id: new ObjectId(id) };
       const options = { upsert: true };
       const updateDoc = {
