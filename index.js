@@ -48,7 +48,9 @@ async function run() {
         };
       }
 
-      const cursor = VPostsCollection.find(query).limit(limit);
+      const cursor = VPostsCollection.find(query)
+        .limit(limit)
+        .sort({ deadline: -1 });
       const result = await cursor.toArray();
       res.send(result);
     });
