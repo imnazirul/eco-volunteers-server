@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
 require("dotenv").config();
 const app = express();
 const port = process.env.port || 5000;
@@ -12,6 +14,7 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(cookieParser());
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.kygk2l2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -25,6 +28,25 @@ const client = new MongoClient(uri, {
   },
 });
 
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production" ? true : false,
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+};
+
+//middleware
+
+const logger = (req, res, next) => {
+  console.log(req.method, req.originalUrl);
+  next();
+};
+
+const verifyToken = (req, res, next) => {
+  const token = req?.cookies?.token;
+  console.log("verify", token);
+  next();
+};
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -37,7 +59,26 @@ async function run() {
       .collection("RequestedPosts");
     const NewsCollection = client.db("volunteerDB").collection("updateNews");
 
-    app.get("/volunteerposts", async (req, res) => {
+    //jwt auth api
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+
+      res.cookie("token", token, cookieOptions).send({ success: true });
+    });
+
+    //clear cookie
+    app.post("/logout", async (req, res) => {
+      const user = req.body;
+      console.log(user.email, "logout Successfully");
+      res.clearCookie("token", { maxAge: 0 }).send({ success: true });
+    });
+
+    //data related api
+    app.get("/volunteerposts", logger, async (req, res) => {
       const email = req.query?.email;
       const limit = parseInt(req.query?.limit);
 
@@ -72,7 +113,6 @@ async function run() {
       const options = {};
       const result = await VPostsCollection.find(query, options).toArray();
 
-      console.log(result.length);
       res.send(result);
     });
 
