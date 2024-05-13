@@ -9,7 +9,11 @@ const port = process.env.port || 5000;
 // middleware
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: [
+      "http://localhost:5173",
+      "https://volunteer-a11.web.app",
+      "https://volunteer-a11.firebaseapp.com",
+    ],
     credentials: true,
   })
 );
@@ -35,11 +39,6 @@ const cookieOptions = {
 };
 
 //middleware
-
-// const logger = (req, res, next) => {
-//   console.log(req.method, req.originalUrl);
-//   next();
-// };
 
 const verifyToken = (req, res, next) => {
   const token = req?.cookies?.token;
@@ -249,7 +248,7 @@ async function run() {
     });
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
