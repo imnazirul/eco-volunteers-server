@@ -138,8 +138,12 @@ async function run() {
 
     app.get("/singlevpost/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
-      const user = req.body;
-      console.log(user);
+      //verify user
+      const email = req.query?.email;
+      if (req.user.email !== email) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+
       const query = { _id: new ObjectId(id) };
       const result = await VPostsCollection.findOne(query);
       res.send(result);
@@ -153,7 +157,13 @@ async function run() {
 
     app.post("/volunteerposts", verifyToken, async (req, res) => {
       const post = req.body;
-      console.log(post);
+      //verify user
+      const email = req.query?.email;
+      if (req.user.email !== email) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+
+      console.log(email);
       const doc = {
         ...post,
       };
@@ -161,8 +171,14 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/updatevolunteerneeded", async (req, res) => {
+    app.post("/updatevolunteerneeded", verifyToken, async (req, res) => {
       const id = req.query?.id;
+      //verify user
+      const email = req.query?.email;
+      if (req.user.email !== email) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+
       const volunteer = req.body;
       const filter = {
         _id: new ObjectId(id),
@@ -180,9 +196,14 @@ async function run() {
       res.send(result);
     });
 
-    app.put("/volunteerposts/:email", async (req, res) => {
+    app.put("/volunteerposts", verifyToken, async (req, res) => {
       const post = req.body;
       const id = req.query?.update;
+      //verify user
+      const email = req.query?.email;
+      if (req.user.email !== email) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
 
       const filter = { _id: new ObjectId(id) };
       const options = { upsert: true };
@@ -201,6 +222,12 @@ async function run() {
 
     app.delete("/volunteerposts", async (req, res) => {
       const id = req.query?.deleteid;
+      //verify user
+      const email = req.query?.email;
+      if (req.user.email !== email) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+
       const query = { _id: new ObjectId(id) };
 
       const result = await VPostsCollection.deleteOne(query);
@@ -209,6 +236,12 @@ async function run() {
 
     app.delete("/requestedpost", async (req, res) => {
       const id = req.query?.cancelid;
+      //verify user
+      const email = req.query?.email;
+      if (req.user.email !== email) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+
       const query = { _id: new ObjectId(id) };
 
       const result = await RequestedPostCollection.deleteOne(query);
