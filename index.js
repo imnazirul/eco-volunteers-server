@@ -91,9 +91,7 @@ async function run() {
     app.get("/volunteerposts", async (req, res) => {
       const limit = parseInt(req.query?.limit);
 
-      const cursor = VPostsCollection.find()
-        .limit(limit)
-        .sort({ deadline: -1 });
+      const cursor = VPostsCollection.find().limit(limit).sort({ deadline: 1 });
       const result = await cursor.toArray();
       res.send(result);
     });
