@@ -217,7 +217,7 @@ async function run() {
       res.send(result);
     });
 
-    app.delete("/volunteerposts", async (req, res) => {
+    app.delete("/volunteerposts", verifyToken, async (req, res) => {
       const id = req.query?.deleteid;
       //verify user
       const email = req.query?.email;
@@ -231,7 +231,7 @@ async function run() {
       res.send(result);
     });
 
-    app.delete("/requestedpost", async (req, res) => {
+    app.delete("/requestedpost", verifyToken, async (req, res) => {
       const id = req.query?.cancelid;
       //verify user
       const email = req.query?.email;
