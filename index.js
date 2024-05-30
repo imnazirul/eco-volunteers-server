@@ -3,6 +3,7 @@ const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
+const stripe = require("stripe")(process.env.STRIPE_TEST_KEY);
 const app = express();
 const port = process.env.port || 5000;
 
@@ -66,13 +67,47 @@ async function run() {
       .db("volunteerDB")
       .collection("RequestedPosts");
     const NewsCollection = client.db("volunteerDB").collection("updateNews");
+    const donationCollection = client.db("volunteerDB").collection("donations");
+
+    //payment
+    app.post("/create-payment-intent", async (req, res) => {
+      const { amount } = req.body;
+      const donateAmount = parseInt(amount * 100);
+      console.log(donateAmount, "donated");
+      if (donateAmount < 0) {
+        return res.send({ clientSecret: null });
+      }
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: donateAmount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+
+      res.send({ clientSecret: paymentIntent.client_secret });
+    });
+
+    app.post("/donations", async (req, res) => {
+      const data = req.body;
+      const result = await donationCollection.insertOne(data);
+      res.send(result);
+    });
+
+    app.get("/donations/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      console.log(email, "donations");
+      const query = {
+        email,
+      };
+      const result = await donationCollection.find(query).toArray();
+      res.send(result);
+    });
 
     //jwt auth api
     app.post("/jwt", async (req, res) => {
       const user = req.body;
-
+      console.log("jwt hitting", req.body);
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "1h",
+        expiresIn: "24h",
       });
 
       res.cookie("token", token, cookieOptions).send({ success: true });
